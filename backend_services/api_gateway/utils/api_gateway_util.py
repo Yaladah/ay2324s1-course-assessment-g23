@@ -1,6 +1,6 @@
 import httpx
 from fastapi import HTTPException, Request
-from .addresses import *
+from .addresses import HOST_URL, USERS_SERVICE_PORT
 from .api_permissions import *
 
 async def check_permission(request: Request, permission_required):
@@ -17,7 +17,7 @@ async def check_permission(request: Request, permission_required):
     session_id = request.cookies.get('session_id')
 
     headers = { session_id: session_id }
-    url = f"{HOST_URL}/{USERS_API_PORT}/sessions"
+    url = f"{HOST_URL}/{USERS_SERVICE_PORT}/sessions"
 
     async with httpx.AsyncClient() as client:
         response = await client.get(url, headers=headers)

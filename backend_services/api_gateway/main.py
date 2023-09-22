@@ -1,8 +1,10 @@
 from fastapi import FastAPI, HTTPException, Request, WebSocket
 import httpx
+import json
+import websockets
 
-from .utils.api_permissions import PERMISSIONS_TABLE, PUBLIC_PERMISSION, USER_PERMISSION, MAINTAINER_PERMISSION
-from .utils.addresses import HOST_URL, USERS_API_PORT, QUESTIONS_API_PORT, SESSIONS_API_PORT
+from .utils.api_permissions import PERMISSIONS_TABLE
+from .utils.addresses import HOST_URL, USERS_SERVICE_PORT, QUESTIONS_SERVICE_PORT, SESSIONS_SERVICE_PORT, MATCHING_SERVICE_PORT
 from .utils.api_gateway_util import check_permission
 
 app = FastAPI()
@@ -10,34 +12,40 @@ app = FastAPI()
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    while True:
+
+    try:
         # Receive message from client
         message = await websocket.receive_text()
 
-        # Process message from client
-        # ...
+        request =  json.loads(message)
+        service = request["service"]
 
+        websocket_url = f"{HOST_URL}"
         # Send message to microservice
-        # ...
+        if service == "matching-service":
+            websocket_url += f"/{MATCHING_SERVICE_PORT}"
+            async with websockets.connect(websocket_url) as matching_service_websocket:
+                await matching_service_websocket.send(json.dumps(request))
+                response = await matching_service_websocket.recv()
+                await websocket.send_text(response)
+        else:
+            raise HTTPException(status_code=400, detail=f"Invalid service requested: {service}")
 
-        # Receive response from microservice
-        response = "Response from microservice"
-
-        # Send response back to client
-        await websocket.send_text(response)
+    except HTTPException as http_exc:
+        await websocket.send_text(http_exc.detail)
 
 async def route_request(method: str, path: str, request: Request):
     # Determine the microservice URL based on the path
     service = None
     if path.startswith("/users"):
         service = "users"
-        microservice_url = f"{HOST_URL}:{USERS_API_PORT}"
+        microservice_url = f"{HOST_URL}:{USERS_SERVICE_PORT}"
     elif path.startswith("/questions"):
         service = "questions"
-        microservice_url = f"{HOST_URL}:{QUESTIONS_API_PORT}"
+        microservice_url = f"{HOST_URL}:{QUESTIONS_SERVICE_PORT}"
     elif path.startswith("/sessions"):
         service = "sessions"
-        microservice_url = f"{HOST_URL}:{USERS_API_PORT}"
+        microservice_url = f"{HOST_URL}:{SESSIONS_SERVICE_PORT}"
     else:
         raise HTTPException(status_code=404, detail="Endpoint not found")
 
