@@ -5,7 +5,9 @@ from .api_permissions import *
 
 async def check_permission(request: Request, permission_required):
     def map_role_permission(role):
-        if role == "user":
+        if role == PUBLIC_PERMISSION:
+            return "public"
+        elif role == "user":
             return USER_PERMISSION
         elif role == "maintainer":
             return MAINTAINER_PERMISSION
