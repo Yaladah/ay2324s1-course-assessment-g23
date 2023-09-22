@@ -28,6 +28,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 await matching_service_websocket.send(json.dumps(request))
                 response = await matching_service_websocket.recv()
                 await websocket.send_text(response)
+                websocket.close()
         else:
             raise HTTPException(status_code=400, detail=f"Invalid service requested: {service}")
 
