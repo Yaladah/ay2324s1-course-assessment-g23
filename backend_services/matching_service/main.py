@@ -3,6 +3,9 @@ import json
 from fastapi.middleware.cors import CORSMiddleware
 import threading
 
+from .matching_util import User
+from .queue_manager import queue, check_for_matches
+
 # create app
 app = FastAPI()
 
@@ -16,16 +19,8 @@ app.add_middleware(
 
 app = FastAPI()
 
-queue = []
-
-class User:
-    def __init__(self, user_id, websocket: WebSocket):
-        self.user_id = user_id
-        self.websocket = websocket
-
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    global queue
 
     await websocket.accept()
 
@@ -42,18 +37,6 @@ async def websocket_endpoint(websocket: WebSocket):
 
     except HTTPException as http_exc:
         await websocket.send_text(http_exc.detail)
-
-def check_for_matches():
-    global queue
-    while True:
-        if len(queue) >= 2:
-            user1 = queue.pop(0)
-            user2 = queue.pop(0)
-            notify_users_of_match(user1, user2)
-
-def notify_users_of_match(user1: User, user2: User):
-    user1.websocket.send_text(f"You have matched with {user2.user_id}")
-    user2.websocket.send_text(f"You have matched with {user1.user_id}")
 
 matching_thread = threading.Thread(target=check_for_matches)
 matching_thread.start()
