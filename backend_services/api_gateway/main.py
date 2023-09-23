@@ -53,16 +53,19 @@ async def route_request(method: str, path: str, request: Request):
     permission_required = PERMISSIONS_TABLE[service][method]
     check_permission(request, permission_required)
 
+    data = await request.body()
+    cookies = await request.cookies()
+
     # Forward the request to the microservice
     async with httpx.AsyncClient() as client:
         if method == "GET":
-            response = await client.get(f"{microservice_url}{path}")
+            response = await client.get(f"{microservice_url}{path}", cookies=cookies)
         elif method == "POST":
-            response = await client.post(f"{microservice_url}{path}", data=await request.body())
+            response = await client.post(f"{microservice_url}{path}", data=data, cookies=cookies)
         elif method == "PUT":
-            response = await client.post(f"{microservice_url}{path}", data=await request.body())
+            response = await client.post(f"{microservice_url}{path}", data=data, cookies=cookies)
         elif method == "DELETE":
-             response = await client.delete(f"{microservice_url}{path}", data=await request.body())
+             response = await client.delete(f"{microservice_url}{path}", data=data, cookies=cookies)
 
         response.raise_for_status()
         return response.text
