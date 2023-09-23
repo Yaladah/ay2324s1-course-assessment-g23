@@ -17,18 +17,18 @@ def create_user(user_id, username, email, password):
                          params=(user_id, username, email, hashed_password))
     return {'message': f'User({user_id}) successfully created'}
 
-
-def get_user(user_id, session_id):
+def get_all_users():
     FIELD_NAMES = ['user_id', 'username', 'email', 'password', 'role']
-    if users_util.is_maintainer(session_id) and user_id == "all":
-        rows = db.execute_sql_read_fetchall(f"SELECT {', '.join(FIELD_NAMES)} FROM users")
-        users = [dict(zip(FIELD_NAMES, row)) for row in rows]
-        return users
-    elif users_util.is_maintainer(session_id) or users_util.is_account_owner(user_id, session_id):
-        db.execute_sql_read_fetchone(f"SELECT {', '.join(FIELD_NAMES)} FROM users WHERE user_id = %s",
+    rows = db.execute_sql_read_fetchall(f"SELECT {', '.join(FIELD_NAMES)} FROM users")
+    users = [dict(zip(FIELD_NAMES, row)) for row in rows]
+    return users
+
+def get_user(user_id):
+    FIELD_NAMES = ['user_id', 'username', 'email', 'password', 'role']
+    row = db.execute_sql_read_fetchone(f"SELECT {', '.join(FIELD_NAMES)} FROM users WHERE user_id = %s",
                                         params=(user_id,))
-    else:
-        raise HTTPException(status_code=401, detail='You do not have access')
+    user = dict(zip(FIELD_NAMES, row))
+    return user
 
 def update_user_info(user_id, username, password, email):
     if not users_util.uid_exists(user_id):
@@ -46,16 +46,17 @@ def update_user_info(user_id, username, password, email):
                         params=(username, new_password, email, user_id))
     return {'message': 'Successfully updated'}
 
+
+def delete_all_users():
+    db.execute_sql_write("DELETE FROM users")
+    return {'message': 'All users deleted'}
+
 def delete_user(user_id):
-    if user_id != "all" and not users_util.uid_exists(user_id):
+    if not users_util.uid_exists(user_id):
         raise HTTPException(status_code=404, detail="User does not exist")
 
-    if user_id == "all":
-        db.execute_sql_write("DELETE FROM users")
-        return {'message': 'All users deleted'}
-    else:
-        db.execute_sql_write("DELETE FROM users WHERE user_id = %s", params=(user_id,))
-        return {'message': f'User id {user_id} deleted'}
+    db.execute_sql_write("DELETE FROM users WHERE user_id = %s", params=(user_id,))
+    return {'message': f'User id {user_id} deleted'}
 
 def update_user_role(user_id, role):
     if role == "normal":

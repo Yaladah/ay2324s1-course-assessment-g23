@@ -22,21 +22,26 @@ async def create_user(r: rm.CreateUser):
     return uc.create_user(user_id, r.username, r.email, r.password)
 
 @app.get("/users/{user_id}", status_code=200)
-async def get_user(user_id: str, request: Request):
-    session_id = request.cookies.get('session_id')
-    return uc.get_user(user_id, session_id)
+async def get_user(user_id: str):
+    return uc.get_user(user_id)
+
+@app.get("/users_all", status_code=200)
+async def get_all_users():
+    return uc.get_all_users()
+
+@app.delete("/users_all", status_code=200)
+async def delete_all_users():
+    return uc.delete_all_users()
 
 @app.delete("/users/{user_id}", status_code=200)
-async def delete_user(user_id: str, request: Request):
-    session_id = request.cookies.get('session_id')
-    return uc.delete_user(user_id, session_id)
+async def delete_user(user_id: str):
+    return uc.delete_user(user_id)
 
-@app.put("/users", status_code=200)
-async def update_user_info(r: rm.UpdateUserInfo, request: Request):
-    session_id = request.cookies.get('session_id')
-    return uc.update_user_info(r.user_id, r.username, r.password, r.email, r.role, session_id)
+@app.put("/users/{user_id}", status_code=200)
+async def update_user_info(user_id: str, r: rm.UpdateUserInfo):
+    return uc.update_user_info(user_id, r.username, r.password, r.email)
 
-@app.put("/users/role/{user_id}", status_code=200)
+@app.put("/users_role/{user_id}", status_code=200)
 async def update_user_role(user_id: str, r: rm.UpdateUserRole):
     return uc.update_user_role(user_id, r.role)
 
@@ -44,10 +49,14 @@ async def update_user_role(user_id: str, r: rm.UpdateUserRole):
 async def user_login(r: rm.UserLogin):
     return sc.user_login(r.username, r.password)
 
-@app.get("/sessions/",  status_code=200)
-async def get_session():
-    return sc.get_session()
+@app.get("/sessions_all",  status_code=200)
+async def get_all_sessions():
+    return sc.get_all_sessions()
 
-@app.delete("/sessions/",  status_code=200)
-async def user_logout():
-    return sc.user_logout()
+@app.get("/sessions/{session_id}",  status_code=200)
+async def get_session(session_id: str):
+    return sc.get_session(session_id)
+
+@app.delete("/sessions/{session_id}",  status_code=200)
+async def user_logout(session_id: str):
+    return sc.user_logout(session_id)

@@ -20,13 +20,16 @@ def user_login(username: str, password: str):
             raise HTTPException(status_code=401, detail="Invalid password")
         raise HTTPException(status_code=401, detail="Account does not exist")
 
-def get_session(session_id):
+
+def get_all_sessions():
     FIELD_NAMES = ['session_id', 'user_id', 'role', 'creation_time', 'expiration_time']
 
-    if session_id == "all":
-        rows = db.execute_sql_read_fetchall(f"SELECT * FROM sessions")
-        sessions = [dict(zip(FIELD_NAMES, row)) for row in rows]
-        return sessions
+    rows = db.execute_sql_read_fetchall(f"SELECT * FROM sessions")
+    sessions = [dict(zip(FIELD_NAMES, row)) for row in rows]
+    return sessions
+
+def get_session(session_id):
+    FIELD_NAMES = ['session_id', 'user_id', 'role', 'creation_time', 'expiration_time']
 
     result = db.execute_sql_read_fetchone('SELECT * FROM sessions WHERE session_id = %s',
                                  params=(session_id,))

@@ -1,10 +1,31 @@
 import httpx
-from fastapi import HTTPException, Request
-from .addresses import HOST_URL, USERS_SERVICE_PORT
+from fastapi import HTTPException
+from .addresses import HOST_URL, USERS_SERVICE_PORT, QUESTIONS_SERVICE_PORT, SESSIONS_SERVICE_PORT, MATCHING_SERVICE_PORT
 from .api_permissions import *
 
-async def check_permission(request: Request, permission_required):
-    def map_role_permission(role):
+def _get_id_from_url(path):
+    tokens = path.split("/")
+    tokens = tokens[1:] # remove service name
+    if len(tokens) < 1:
+        return None
+    return tokens[-1]
+
+def map_path_microservice_url(path):
+    service = None
+    microservice_url = None
+    if path.startswith("/users"):
+        service = "users"
+        microservice_url = f"{HOST_URL}:{USERS_SERVICE_PORT}"
+    elif path.startswith("/questions"):
+        service = "questions"
+        microservice_url = f"{HOST_URL}:{QUESTIONS_SERVICE_PORT}"
+    elif path.startswith("/sessions"):
+        service = "sessions"
+        microservice_url = f"{HOST_URL}:{SESSIONS_SERVICE_PORT}"
+
+    return service, microservice_url
+
+def _map_role_permission(role):
         if role == PUBLIC_PERMISSION:
             return "public"
         elif role == "user":
@@ -13,13 +34,18 @@ async def check_permission(request: Request, permission_required):
             return MAINTAINER_PERMISSION
         return -1
 
+async def check_permission(session_id, path, method):
+    service = map_path_microservice_url(path)[0]
+    permission_required = PERMISSIONS_TABLE[service][method]
+
     if permission_required == PUBLIC_PERMISSION:
         return
 
-    session_id = request.cookies.get('session_id')
+    if session_id is None:
+        raise HTTPException(status_code=401, detail="Unauthorized access")
 
-    headers = { session_id: session_id }
-    url = f"{HOST_URL}/{USERS_SERVICE_PORT}/sessions"
+    headers = { 'session_id': session_id }
+    url = f"{HOST_URL}/{SESSIONS_SERVICE_PORT}/sessions"
 
     async with httpx.AsyncClient() as client:
         response = await client.get(url, headers=headers)
@@ -27,7 +53,26 @@ async def check_permission(request: Request, permission_required):
         if response.status_code != 200:
             raise HTTPException(status_code=response.status_code, detail=response.text)
 
-        permission_level = map_role_permission(response.json()["role"])
+        session = response.json()
+        _check_access_to_supplied_id(session, path, service)
+
+        permission_level = _map_role_permission(session['role'])
 
         if permission_level < permission_required:
+            raise HTTPException(status_code=401, detail="Unauthorized access")
+
+
+def _check_access_to_supplied_id(session, path, service):
+    if session['role'] == "maintainer":
+        return
+
+    if service == "users":
+        supplied_id = _get_id_from_url(path)
+        session_user_id = session['user_id'] # also prevents the case when normal user tries to GET "all"
+        if supplied_id != session_user_id:
+            raise HTTPException(status_code=401, detail="Unauthorized access")
+
+    elif service == "sessions":
+        supplied_id = _get_id_from_url(path)
+        if supplied_id != session['session_id']:
             raise HTTPException(status_code=401, detail="Unauthorized access")

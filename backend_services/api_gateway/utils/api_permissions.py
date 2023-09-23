@@ -11,10 +11,21 @@ PERMISSIONS_TABLE = {
         "DELETE": USER_PERMISSION,
         "PUT": USER_PERMISSION
         },
+    "users_all": {
+        "GET": MAINTAINER_PERMISSION,
+        "DELETE": MAINTAINER_PERMISSION
+        },
+    "users_role": {
+        "PUT": MAINTAINER_PERMISSION
+        },
     "sessions": {
         "POST": PUBLIC_PERMISSION,
         "GET": USER_PERMISSION,
         "DELETE": USER_PERMISSION,
+        },
+    "sessions_all":{
+        "GET": MAINTAINER_PERMISSION,
+        "DELETE": MAINTAINER_PERMISSION
         },
     "questions": {
         "POST": MAINTAINER_PERMISSION,

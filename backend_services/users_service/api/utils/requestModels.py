@@ -16,3 +16,6 @@ class UpdateUserInfo(BaseModel):
 class UserLogin(BaseModel):
     username: str
     password: str
+
+class UpdateUserRole(BaseModel):
+    role: str
