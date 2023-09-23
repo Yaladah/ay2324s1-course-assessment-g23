@@ -52,13 +52,13 @@ async def route_request(method: str, path: str, request: Request):
     # Forward the request to the microservice
     async with httpx.AsyncClient() as client:
         if method == "GET":
-            response = await client.get(f"{microservice_url}{path}", cookies=cookies)
+            response = await client.get(f"{microservice_url}{path}")
         elif method == "POST":
-            response = await client.post(f"{microservice_url}{path}", data=data, cookies=cookies)
+            response = await client.post(f"{microservice_url}{path}", data=data)
         elif method == "PUT":
-            response = await client.post(f"{microservice_url}{path}", data=data, cookies=cookies)
+            response = await client.post(f"{microservice_url}{path}", data=data)
         elif method == "DELETE":
-             response = await client.delete(f"{microservice_url}{path}", data=data, cookies=cookies)
+             response = await client.delete(f"{microservice_url}{path}", data=data)
 
         response.raise_for_status()
         return response.text
