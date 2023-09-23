@@ -32,6 +32,10 @@ PERMISSIONS_TABLE = {
         "GET": USER_PERMISSION,
         "DELETE": MAINTAINER_PERMISSION,
         "PUT": MAINTAINER_PERMISSION
-        }
+        },
+    "questions_all":{
+        "GET": USER_PERMISSION,
+        "DELETE": MAINTAINER_PERMISSION
+    }
 }
 

@@ -34,9 +34,13 @@ def _map_role_permission(role):
             return MAINTAINER_PERMISSION
         return -1
 
+def _get_service_path(path):
+    tokens = path.split("/")
+    return tokens[1]
+
 async def check_permission(session_id, path, method):
-    service = map_path_microservice_url(path)[0]
-    permission_required = PERMISSIONS_TABLE[service][method]
+    service_path = _get_service_path(path)
+    permission_required = PERMISSIONS_TABLE[service_path][method]
 
     if permission_required == PUBLIC_PERMISSION:
         return
@@ -54,7 +58,7 @@ async def check_permission(session_id, path, method):
             raise HTTPException(status_code=response.status_code, detail=response.text)
 
         session = response.json()
-        _check_access_to_supplied_id(session, path, service)
+        _check_access_to_supplied_id(session, path, service_path)
 
         permission_level = _map_role_permission(session['role'])
 
@@ -66,9 +70,11 @@ def _check_access_to_supplied_id(session, path, service):
     if session['role'] == "maintainer":
         return
 
+    # Normal users will pass these checks to call `users_all``. There are no supplied ids => vacuously true.
+    # But their permissions will be checked by permissions table
     if service == "users":
         supplied_id = _get_id_from_url(path)
-        session_user_id = session['user_id'] # also prevents the case when normal user tries to GET "all"
+        session_user_id = session['user_id']
         if supplied_id != session_user_id:
             raise HTTPException(status_code=401, detail="Unauthorized access")
 

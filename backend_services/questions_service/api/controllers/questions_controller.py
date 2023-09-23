@@ -16,17 +16,23 @@ def create_question(question_id, title, description, category, complexity):
                          params=(question_id, title, description, category, complexity))
     return {'message': f'Question({question_id}) successfully created'}
 
+def get_all_questions():
+    FIELD_NAMES = ['question_id', 'title', 'description', 'category', 'complexity']
+
+    rows = db.execute_sql_read_fetchall(f"SELECT {', '.join(FIELD_NAMES)} FROM questions")
+    questions = [dict(zip(FIELD_NAMES, row)) for row in rows]
+    return questions
+
 def get_question(question_id):
-    if question_id != "all" and not questions_util.qid_exists(question_id):
+    if not questions_util.qid_exists(question_id):
         raise HTTPException(status_code=404, detail='Question id does not exist')
 
     FIELD_NAMES = ['question_id', 'title', 'description', 'category', 'complexity']
-    if question_id == "all":
-        rows = db.execute_sql_read_fetchall(f"SELECT {', '.join(FIELD_NAMES)} FROM questions")
-        questions = [dict(zip(FIELD_NAMES, row)) for row in rows]
-        return questions
-    return db.execute_sql_read_fetchone(f"SELECT {', '.join(FIELD_NAMES)} FROM questions WHERE question_id = %s",
-                                        params=(question_id,))
+
+    row = db.execute_sql_read_fetchone(f"SELECT {', '.join(FIELD_NAMES)} FROM questions WHERE question_id = %s",
+                                    params=(question_id,))
+    question = dict(zip(FIELD_NAMES, row))
+    return question
 
 def update_question_info(question_id, title, description, category, complexity):
     if not questions_util.qid_exists(question_id):
@@ -42,13 +48,13 @@ def update_question_info(question_id, title, description, category, complexity):
                         params=(title, description, category, complexity, question_id))
     return {'message': f'Successfully updated'}
 
+def delete_all_questions():
+    db.execute_sql_write("DELETE FROM questions")
+    return {'message': 'All questions deleted'}
+
 def delete_question(question_id):
-    if question_id != "all" and not questions_util.qid_exists(question_id):
+    if not questions_util.qid_exists(question_id):
         raise HTTPException(status_code=404, detail="Question does not exist")
 
-    if question_id == "all":
-        db.execute_sql_write("DELETE FROM questions")
-        return {'message': 'All questions deleted'}
-    else:
-        db.execute_sql_write("DELETE FROM questions WHERE question_id = %s", params=(question_id,))
-        return {'message': f"Question({question_id}) deleted"}
+    db.execute_sql_write("DELETE FROM questions WHERE question_id = %s", params=(question_id,))
+    return {'message': f"Question({question_id}) deleted"}
