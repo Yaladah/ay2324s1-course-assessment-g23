@@ -20,7 +20,13 @@ def create_session(user_id, role):
 
     db.execute_sql_write("INSERT INTO sessions (session_id, user_id, role, creation_time, expiration_time) VALUES (%s, %s, %s, %s, %s)",
                          params=(session_id, user_id, role, str(creation_time), str(expiration_time)))
-    return session_id
+    return {
+        'session_id': session_id,
+        'user_id': user_id,
+        'role': role,
+        'creation_time': creation_time,
+        'expiration_time': expiration_time
+    }
 
 def delete_session(session_id):
     db.execute_sql_write("DELETE FROM sessions WHERE session_id = %s", params=(session_id,))
