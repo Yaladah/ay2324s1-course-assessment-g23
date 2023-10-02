@@ -59,7 +59,7 @@ async def check_permission(session_id, path, method):
         raise HTTPException(status_code=401, detail="Unauthorized access")
 
     headers = { 'session_id': session_id }
-    url = f"{SESSIONS_SERVICE_HOST}/{API_PORT}/sessions"
+    url = f"http://{SESSIONS_SERVICE_HOST}/{API_PORT}/sessions"
 
     async with httpx.AsyncClient() as client:
         response = await client.get(url, headers=headers)
