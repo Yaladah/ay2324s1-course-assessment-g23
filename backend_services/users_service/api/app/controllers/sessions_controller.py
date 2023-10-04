@@ -12,7 +12,7 @@ def user_login(username: str, password: str) -> UserLoginResponse | ServiceError
     if login_result:
         user_id, role = login_result
         session_id = sessions_util.create_session(user_id, role)
-        return UserLoginResponse(session_id=session_id, message=f'User {username} successfully logged in')
+        return UserLoginResponse(session_id=session_id, message=f'User {username} successfully logged in with {session_id}')
     else:
         if users_util.username_exists(username):
             return ServiceError(status_code=401, message='Invalid password')

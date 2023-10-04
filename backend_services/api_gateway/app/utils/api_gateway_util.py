@@ -13,7 +13,8 @@ import json
 from typing import Literal, TypeAlias
 
 async def connect_matching_service_websocket(websocket: WebSocket, request):
-    websocket_url = f"{MATCHING_SERVICE_HOST}/{API_PORT}"
+    # websocket_url = "ws://{MATCHING_SERVICE_HOST}/{API_PORT}/ws/matching"
+    websocket_url = "ws://localhost:8000/ws/matching"
     async with websockets.connect(websocket_url) as matching_service_websocket:
                 await matching_service_websocket.send(json.dumps(request))
                 response = await matching_service_websocket.recv()
@@ -53,11 +54,12 @@ def _get_service_path(path: str) -> str:
 
 async def check_permission(session_id: str | None, path: str, method: Method) -> None:
     service_path = _get_service_path(path)
+    print("Service path: ", service_path)
     permission_required = PERMISSIONS_TABLE[service_path][method]
-
+    print("permission_required: ", permission_required)
     if permission_required == PUBLIC_PERMISSION:
         return
-
+    print("Session id: ", session_id)
     if session_id is None:
         raise HTTPException(status_code=401, detail="Unauthorized access")
 
