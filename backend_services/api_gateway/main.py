@@ -23,13 +23,12 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         # Receive message from client
         message = await websocket.receive_text()
-
         request =  json.loads(message)
         service = request["service"]
 
         # Send message to microservice
         if service == "matching-service":
-            connect_matching_service_websocket(websocket, request)
+            await connect_matching_service_websocket(websocket, request)
         else:
             raise HTTPException(status_code=400, detail=f"Invalid service requested: {service}")
 
@@ -46,7 +45,7 @@ async def route_request(method: str, path: str, request: Request):
     cookies = request.cookies
     session_id = cookies.get('session_id')
 
-    await check_permission(session_id, path, method)
+    # await check_permission(session_id, path, method)
 
     data = await request.body()
 
@@ -69,9 +68,9 @@ async def route_request(method: str, path: str, request: Request):
 
 @app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
 async def handle_request(request: Request):
+    print(request.cookies)
     path = request.url.path
     method = request.method
-
     response = await route_request(method, path, request)
     response = response.json()
 

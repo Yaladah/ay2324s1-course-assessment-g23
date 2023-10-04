@@ -19,15 +19,13 @@ app.add_middleware(
 
 app = FastAPI()
 
-@app.websocket("/ws")
+@app.websocket("/ws/matching")
 async def websocket_endpoint(websocket: WebSocket):
-
     await websocket.accept()
-
     try:
         # Receive message from client
         message = await websocket.receive_text()
-
+        print("Message: ", message)
         request =  json.loads(message)
         detail = request["detail"]
         user_id = detail["user_id"]

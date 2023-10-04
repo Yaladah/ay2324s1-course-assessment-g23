@@ -19,6 +19,7 @@ complexity_queues = {
 #             notify_users_of_match(user1, user2)
 
 def check_for_matches():
+    print("checking")
     while True:
         for queue_name, user_list in complexity_queues.items():
             if len(user_list) >= 2:
