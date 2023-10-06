@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, Request, WebSocket
 import httpx
 import json
 from fastapi.middleware.cors import CORSMiddleware
-
+import websockets
 from utils.api_gateway_util import check_permission, map_path_microservice_url, connect_matching_service_websocket, attach_cookie, delete_cookie
 
 app = FastAPI()
@@ -28,7 +28,13 @@ async def websocket_endpoint(websocket: WebSocket):
 
         # Send message to microservice
         if service == "matching-service":
-            await connect_matching_service_websocket(websocket, request)
+            # await connect_matching_service_websocket(websocket, message)
+            websocket_url = "ws://127.0.0.1:8003/ws/matching"
+            async with websockets.connect(websocket_url) as matching_service_websocket:
+                await matching_service_websocket.send(message)
+                response = await matching_service_websocket.receive_text()
+                await websocket.send_text(response)
+                websocket.close()
         else:
             raise HTTPException(status_code=400, detail=f"Invalid service requested: {service}")
 

@@ -1,7 +1,9 @@
+import websockets
 from matching_util import User
 import pika
 import json
 import time
+from fastapi import WebSocket
 
 # create queues for each complexity
 complexity_queues = {
@@ -49,23 +51,12 @@ def check_for_matches():
 
         # Sleep for some time before checking again (to avoid busy-waiting)
         time.sleep(1)
-        for queue_name, user_list in complexity_queues.items():
-            if len(user_list) >= 2:
-                user1, user2 = user_list[:2]  # Get the first two users
-                user_list[:2] = []  # Remove the matched users from the queue
-                
-                # Notify the matched users with their IDs
-                notify_users_of_match(user1, user2)
-                print(f"Match Found: {user1['user_id']} and {user2['user_id']}")
 
-        # Sleep for some time before checking again (to avoid busy-waiting)
-        time.sleep(1)
-
-def notify_users_of_match(user1: User, user2: User):
+def notify_users_of_match(user1: User, user2: User, websocket: websockets):
     user1.websocket.send_text(f"You have matched with {user2.user_id}")
     user2.websocket.send_text(f"You have matched with {user1.user_id}")
 
-def send_user_to_queue(user_id, complexity):
+def send_user_to_queue(user_id, complexity, websocket: WebSocket):
     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
     channel = connection.channel()
 
@@ -74,7 +65,8 @@ def send_user_to_queue(user_id, complexity):
 
     user_data = {
         'user_id' : {user_id},
-        'complexity' : {complexity}
+        'complexity' : {complexity},
+        'websocket' : websocket
     }
 
     channel.basic_publish(
@@ -90,7 +82,7 @@ def send_user_to_queue(user_id, complexity):
 
     connection.close()
 
-def consume_queue(queue_name):
+def consume_queue(queue_name, websocket: WebSocket):
     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
     channel = connection.channel()
     channel.queue_declare(queue=queue_name)
@@ -109,7 +101,7 @@ def consume_queue(queue_name):
                 # Check if there are 2 users in the queue
                 if len(curr_queue[queue_name]) >= 2:
                     user1, user2 = curr_queue[queue_name]
-                    notify_users_of_match(user1, user2)
+                    notify_users_of_match(user1, user2, websocket)
                     curr_queue[queue_name] = []  # Clear the queue
         
     channel.basic_consume(

@@ -6,12 +6,12 @@ from .api_permissions import *
 import websockets
 import json
 
-async def connect_matching_service_websocket(websocket: WebSocket, request):
+async def connect_matching_service_websocket(websocket: WebSocket, message):
     # websocket_url = "ws://{MATCHING_SERVICE_HOST}/{API_PORT}/ws/matching"
-    websocket_url = "ws://localhost:8000/ws/matching"
+    websocket_url = "ws://localhost:8003/ws/matching"
     async with websockets.connect(websocket_url) as matching_service_websocket:
-                await matching_service_websocket.send(json.dumps(request))
-                response = await matching_service_websocket.recv()
+                await matching_service_websocket.send(message)
+                response = await matching_service_websocket.receive_text()
                 await websocket.send_text(response)
                 websocket.close()
 
