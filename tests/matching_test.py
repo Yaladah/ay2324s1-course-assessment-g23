@@ -18,9 +18,10 @@ async def send_message():
                 'complexity': 'easy'
             }
         }
-        await websocket.send(json.dumps(message))
-        response = await websocket.recv()
-        print(response)
+        await ws.send(json.dumps(message))
+        response = await ws.recv()
+        response = json.loads(response)
+        print("Response: ", response)
 
 if __name__ == "__main__":
     asyncio.run(send_message())

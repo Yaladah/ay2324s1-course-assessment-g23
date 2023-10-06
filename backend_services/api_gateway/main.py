@@ -20,13 +20,11 @@ app.add_middleware(
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-
     try:
         # Receive message from client
         message = await websocket.receive_text()
         request =  json.loads(message)
         service = request["service"]
-
         # Send message to microservice
         if service == "matching-service":
             # await connect_matching_service_websocket(websocket, message)
@@ -41,6 +39,12 @@ async def websocket_endpoint(websocket: WebSocket):
 
     except HTTPException as http_exc:
         await websocket.send_text(http_exc.detail)
+    except websockets.exceptions.ConnectionClosedError as conn_closed_exc:
+        # Handle WebSocket connection closed errors
+        print(f"WebSocket connection closed: {conn_closed_exc}")
+    except Exception as e:
+        # Log any other exceptions for debugging
+        print(f"An error occurred: {e}")
 
 async def route_request(method: str, path: str, request: Request):
     # Determine the microservice URL based on the path
