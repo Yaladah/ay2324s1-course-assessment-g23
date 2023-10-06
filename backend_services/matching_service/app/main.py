@@ -27,13 +27,19 @@ async def websocket_endpoint(websocket: WebSocket):
         message = await websocket.receive_text()
         print("Message: ", message)
         request =  json.loads(message)
-        detail = request["detail"]
+        detail = request["message"]
         user_id = detail["user_id"]
         complexity = detail["complexity"]
+        
+        await websocket.send_text(json.dumps(request))
+        
+        await websocket.close()
 
-        send_user_to_queue(user_id, complexity)
+        # send_user_to_queue(user_id, complexity, websocket)
 
-        consume_queue(f'{complexity}_queue')
+        # consume_queue(f'{complexity}_queue', websocket)
+        
+        # await websocket.close()
 
     except HTTPException as http_exc:
         await websocket.send_text(http_exc.detail)
