@@ -17,10 +17,38 @@ complexity_queues = {
 #             user1 = queue.pop(0)
 #             user2 = queue.pop(0)
 #             notify_users_of_match(user1, user2)
+import pika
+import json
+import time
+
+# create queues for each complexity
+complexity_queues = {
+    'easy_queue': {},
+    'medium_queue': {},
+    'hard_queue': {},
+}
+
+# def check_for_matches():
+#     global queue
+#     while True:
+#         if len(queue) >= 2:
+#             user1 = queue.pop(0)
+#             user2 = queue.pop(0)
+#             notify_users_of_match(user1, user2)
 
 def check_for_matches():
-    print("checking")
     while True:
+        for queue_name, user_list in complexity_queues.items():
+            if len(user_list) >= 2:
+                user1, user2 = user_list[:2]  # Get the first two users
+                user_list[:2] = []  # Remove the matched users from the queue
+                
+                # Notify the matched users with their IDs
+                notify_users_of_match(user1, user2)
+                print(f"Match Found: {user1['user_id']} and {user2['user_id']}")
+
+        # Sleep for some time before checking again (to avoid busy-waiting)
+        time.sleep(1)
         for queue_name, user_list in complexity_queues.items():
             if len(user_list) >= 2:
                 user1, user2 = user_list[:2]  # Get the first two users
