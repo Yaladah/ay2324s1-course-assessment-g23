@@ -6,14 +6,15 @@ from .api_permissions import *
 import websockets
 import json
 
-async def connect_matching_service_websocket(websocket: WebSocket, request):
-    # websocket_url = "ws://{MATCHING_SERVICE_HOST}/{API_PORT}/ws/matching"
-    websocket_url = "ws://localhost:8000/ws/matching"
-    async with websockets.connect(websocket_url) as matching_service_websocket:
-                await matching_service_websocket.send(json.dumps(request))
-                response = await matching_service_websocket.recv()
-                await websocket.send_text(response)
-                websocket.close()
+async def connect_matching_service_websocket(websocket: WebSocket, message):
+    # websocket_url = "ws://{MATCHING_SERVICE_HOST}/{API_PORT}/matching"
+    matching_socket_url = "ws://localhost:8000/ws/matching"
+    async with websockets.connect(matching_socket_url) as matching_service_websocket:
+        # data = json.dumps(message)
+        await matching_service_websocket.send(message)
+        response = await matching_service_websocket.recv()
+        await websocket.send_text(response)
+        websocket.close()
 
 def _get_id_from_url(path):
     tokens = path.split("/")
