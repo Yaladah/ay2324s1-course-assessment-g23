@@ -12,32 +12,6 @@ complexity_queues = {
     'hard_queue': {},
 }
 
-# def check_for_matches():
-#     global queue
-#     while True:
-#         if len(queue) >= 2:
-#             user1 = queue.pop(0)
-#             user2 = queue.pop(0)
-#             notify_users_of_match(user1, user2)
-import pika
-import json
-import time
-
-# create queues for each complexity
-complexity_queues = {
-    'easy_queue': {},
-    'medium_queue': {},
-    'hard_queue': {},
-}
-
-# def check_for_matches():
-#     global queue
-#     while True:
-#         if len(queue) >= 2:
-#             user1 = queue.pop(0)
-#             user2 = queue.pop(0)
-#             notify_users_of_match(user1, user2)
-
 def check_for_matches():
     while True:
         for queue_name, user_list in complexity_queues.items():
@@ -65,8 +39,7 @@ def send_user_to_queue(user_id, complexity, websocket: WebSocket):
 
     user_data = {
         'user_id' : {user_id},
-        'complexity' : {complexity},
-        'websocket' : websocket
+        'complexity' : {complexity}
     }
 
     channel.basic_publish(
