@@ -4,7 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 import threading
 
 from matching_util import User
-from queue_manager import consume_queue, check_for_matches, send_user_to_queue
+from matching import send_user_to_queue, listen_for_server_replies
+# from queue_manager import consume_queue, check_for_matches, send_user_to_queue
 
 # create app
 app = FastAPI()
@@ -30,17 +31,16 @@ async def websocket_endpoint(websocket: WebSocket):
         detail = request["message"]
         user_id = detail["user_id"]
         complexity = detail["complexity"]
-        
+        user = User(user_id=user_id, complexity=complexity, websocket=websocket)
         # await websocket.send_text(json.dumps(request))
 
-        send_user_to_queue(user_id, complexity)
+        await send_user_to_queue(user)
 
         # consume_queue(f'{complexity}_queue', websocket)
-        
+        listener_thread = await threading.Thread(target=listen_for_server_replies)
+        listener_thread.start()
         await websocket.close()
 
     except HTTPException as http_exc:
         await websocket.send_text(http_exc.detail)
 
-matching_thread = threading.Thread(target=check_for_matches)
-matching_thread.start()
