@@ -83,8 +83,10 @@ services:
       - 8003:8000
     networks:
       - backend-apis
+      - matching-queue
     depends_on:
       - base_api
+      - rabbitmq
   users_database:
     build:
       context: ./backend_services/users_service/database
@@ -117,13 +119,30 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - PGDATA=${PGDATA}
+  rabbitmq:
+    build:
+      context: ./backend_services/matching_service/db
+      dockerfile: Dockerfile
+    ports:
+      - "5672:5672"  # RabbitMQ default AMQP port
+      - "15672:15672"  # RabbitMQ Management Console port
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - matching-queue
 volumes:
   users-data:
     external: true
   questions-data:
+    external: true
+  rabbitmq-data:
     external: true
 networks:
   users:
   questions:
   client-side:
   backend-apis:
+  matching-queue:

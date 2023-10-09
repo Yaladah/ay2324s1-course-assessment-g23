@@ -5,8 +5,10 @@ import websockets
 
 from matching_util import User
 
-def send_user_to_queue(user: User):
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
+async def send_user_to_queue(user: User):
+    credentials = pika.PlainCredentials(username='guest', password='guest')
+    parameters = pika.ConnectionParameters('rabbitmq', 5672, '/', credentials)
+    connection = pika.BlockingConnection(parameters=parameters)
     channel = connection.channel()
 
     user_id = user.user_id
@@ -34,6 +36,8 @@ def send_user_to_queue(user: User):
     # channel.basic_consume(queue=f'{user_id}_q', on_message_callback=on_response, auto_ack=True)
 
     connection.close()
+    
+    return ''
     
 def listen_for_server_replies():
     connection = pika.BlockingConnection(
