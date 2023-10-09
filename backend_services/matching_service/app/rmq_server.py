@@ -8,7 +8,9 @@ complexity_queues = {
 }
 
 def main():
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
+    credentials = pika.PlainCredentials(username='guest', password='guest')
+    parameters = pika.ConnectionParameters('rabbitmq', 5672, '/', credentials)
+    connection = pika.BlockingConnection(parameters=parameters)
     channel = connection.channel()
 
     def callback(ch, method, properties, body):

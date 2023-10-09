@@ -4,6 +4,7 @@ import json
 from fastapi.middleware.cors import CORSMiddleware
 import websockets
 from utils.api_gateway_util import check_permission, map_path_microservice_url, connect_matching_service_websocket, attach_cookie, delete_cookie
+from utils.addresses import MATCHING_SERVICE_HOST
 
 app = FastAPI()
 
@@ -29,10 +30,10 @@ async def websocket_endpoint(websocket: WebSocket):
         # Send message to microservice
         if service == "matching-service":
             # await connect_matching_service_websocket(websocket, message)
-            websocket_url = "ws://127.0.0.1:8003/ws/matching"
+            websocket_url = "ws://" + MATCHING_SERVICE_HOST + ":8003/ws/matching"
             async with websockets.connect(websocket_url) as matching_service_websocket:
                 await matching_service_websocket.send(message)
-                response = await matching_service_websocket.receive_text()
+                response = await matching_service_websocket.recv()
                 await websocket.send_text(response)
                 websocket.close()
         else:
