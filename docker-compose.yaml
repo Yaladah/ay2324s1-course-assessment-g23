@@ -77,10 +77,10 @@ services:
   matching_api:
     build:
       context: ./backend_services/matching_service
-      dockerfile: ../API_Dockerfile
+      dockerfile: Dockerfile
     container_name: matching_api
     ports:
-      - 8003:8000
+      - 8003:8003
     networks:
       - backend-apis
       - matching-queue
