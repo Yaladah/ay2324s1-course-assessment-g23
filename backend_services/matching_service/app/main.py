@@ -45,6 +45,9 @@ async def websocket_endpoint(websocket: WebSocket):
     except websockets.exceptions.ConnectionClosedError as conn_closed_exc:
         # Handle WebSocket connection closed errors
         print(f"WebSocket connection closed: {conn_closed_exc}")
+    except websockets.exceptions.ConnectionClosedError as conn_closed_exc:
+        # Handle WebSocket connection closed errors
+        print(f"WebSocket connection closed: {conn_closed_exc}")
     except HTTPException as http_exc:
         await websocket.send_text(http_exc.detail)
     except Exception as e:
