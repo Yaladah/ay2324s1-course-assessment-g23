@@ -30,14 +30,16 @@ async def websocket_endpoint(websocket: WebSocket):
         message = await websocket.receive_text()
         request =  json.loads(message)
         service = request["service"]
+        body = request["message"]
         # Send message to microservice
         if service == "matching-service":
             # await connect_matching_service_websocket(websocket, message)
             websocket_url = "ws://" + MATCHING_SERVICE_HOST + ":8003/ws/matching"
             async with websockets.connect(websocket_url) as matching_service_websocket:
-                await matching_service_websocket.send(message)
-                response = await matching_service_websocket.recv()
-                await websocket.send_text(response)
+                await matching_service_websocket.send_text(json.dumps(body))
+                response = await matching_service_websocket.receive_text()
+                message = json.loads(response)
+                await websocket.send_text(json.dumps(message))
                 websocket.close()
         else:
             raise HTTPException(status_code=400, detail=f"Invalid service requested: {service}")

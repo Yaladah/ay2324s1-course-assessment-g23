@@ -13,3 +13,7 @@ fi
 
 # Bring down the services and remove all images, before building/starting.
 docker-compose down --rmi all && docker-compose --env-file .env up --build "$@"
+
+sleep 10
+
+python .backend_services/matching_service/app/rmq_server.py

@@ -1,4 +1,5 @@
 import pika, sys, os, json, time, threading
+import asyncio
 
 # create queues for each complexity
 complexity_queues = {
@@ -7,13 +8,15 @@ complexity_queues = {
     'hard_queue': [],
 }
 
+lock = asyncio.Lock()
+
 def main():
     credentials = pika.PlainCredentials(username='guest', password='guest')
     parameters = pika.ConnectionParameters('rabbitmq', 5672, '/', credentials)
     connection = pika.BlockingConnection(parameters=parameters)
     channel = connection.channel()
 
-    def callback(ch, method, properties, body):
+    async def callback(ch, method, properties, body):
         user_data = json.loads(body)
         print(user_data, ' received')
         user = user_data['message']
@@ -21,7 +24,7 @@ def main():
         user_id = user.user_id
         queue_name = f'{complexity}_queue'
         
-        with threading.Lock():
+        with lock:
             curr_queue = complexity_queues[queue_name]
             curr_queue.append(user)
 
@@ -30,16 +33,26 @@ def main():
                 user1, user2 = curr_queue[:2]
                 # reply = f'{user1} matched with {user2}'
                 reply = {
-                    'user1': f'{user1}',
-                    'user2': f'{user2}'
+                    "user1": f'{user1}',
+                    "user2": f'{user2}'
                 }
+                user1_id = user1.user_id
+                user2_id = user2.user_id
                 curr_queue[:2] = []  # Clear the queue
 
                 correlation_id = str(properties.correlation_id)
                 # Publish the reply
                 channel.basic_publish(
                     exchange='',
-                    routing_key='reply_queue',
+                    routing_key=f'{user1_id}_q',
+                    properties=pika.BasicProperties(
+                        correlation_id=properties.correlation_id
+                    ),
+                    body=json.dumps(reply)
+                )
+                channel.basic_publish(
+                    exchange='',
+                    routing_key=f'{user2_id}_q',
                     properties=pika.BasicProperties(
                         correlation_id=properties.correlation_id
                     ),
