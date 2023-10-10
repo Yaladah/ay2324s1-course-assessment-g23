@@ -3,7 +3,7 @@ import websockets
 import json
 
 async def send_message():
-    async with websockets.connect('ws://localhost:8000/ws') as websocket:
+    async with websockets.connect('ws://localhost:8000/ws') as ws:
         # message = {
         #     'service': 'matching-service',
         #     'message': {
@@ -12,10 +12,10 @@ async def send_message():
         #     }
         # }
         message = {
-            'service': 'matching-service',
-            'message': {
-                'user_id': '1234',
-                'complexity': 'easy'
+            "service": "matching-service",
+            "message": {
+                "user_id": "1234",
+                "complexity": "easy"
             }
         }
         await ws.send(json.dumps(message))
