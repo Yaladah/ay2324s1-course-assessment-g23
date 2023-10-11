@@ -36,7 +36,7 @@ async def websocket_endpoint(websocket: WebSocket):
             # await connect_matching_service_websocket(websocket, message)
             websocket_url = "ws://" + MATCHING_SERVICE_HOST + ":8003/ws/matching"
             async with websockets.connect(websocket_url) as matching_service_websocket:
-                await matching_service_websocket.send_text(json.dumps(body))
+                await matching_service_websocket.send_text(json.dumps(request))
                 response = await matching_service_websocket.receive_text()
                 message = json.loads(response)
                 await websocket.send_text(json.dumps(message))

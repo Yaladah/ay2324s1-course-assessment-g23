@@ -120,9 +120,8 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - PGDATA=${PGDATA}
   rabbitmq:
-    build:
-      context: ./backend_services/matching_service/db
-      dockerfile: Dockerfile
+    image: rabbitmq:3.12-management
+    container_name: RabbitMQ
     ports:
       - "5672:5672"  # RabbitMQ default AMQP port
       - "15672:15672"  # RabbitMQ Management Console port
@@ -133,6 +132,19 @@ services:
       - rabbitmq-data:/var/lib/rabbitmq
     networks:
       - matching-queue
+  rmq_server:
+    build:
+      context: ./backend_services/matching_service/rmq_server
+      dockerfile: Dockerfile
+    container_name: rmq_server
+    # environment:
+    #   RABBITMQ_DEFAULT_USER: guest
+    #   RABBITMQ_DEFAULT_PASS: guest
+    networks:
+      - matching-queue
+    depends_on:
+      - matching_api
+      - rabbitmq
 volumes:
   users-data:
     external: true
