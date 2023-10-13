@@ -2,57 +2,70 @@ import pika
 import json
 from fastapi import WebSocket
 import websockets
+import aio_pika
 
-from matching_util import User
+from matching_util import User, message_received
+
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# Configure logging to write to stdout
+handler = logging.StreamHandler()
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 async def send_user_to_queue(user_id, complexity):
     try:
-        credentials = pika.PlainCredentials(username='guest', password='guest')
-        parameters = pika.ConnectionParameters('rabbitmq', 5672, '/', credentials)
-        connection = pika.BlockingConnection(parameters=parameters)
-        channel = connection.channel()
+        connection = await aio_pika.connect_robust("amqp://guest:guest@rabbitmq:5672/%2F")
+        channel = await connection.channel()
 
-        channel.queue_declare(queue=f'{complexity}_queue')
-        channel.queue_declare(queue=f'{user_id}_q')
+        queue_name = f'{complexity}_queue'
+        await channel.declare_queue(queue_name)
         message = {
             "user_id": f"{user_id}",
             "complexity": f"{complexity}"
         }
         data = json.dumps(message)
-
-        channel.basic_publish(exchange='', routing_key=f'{complexity}_queue', body=data)
-        connection.close()
+        logger.info(f"{user_id} sent to queue")
+        await channel.default_exchange.publish(
+            aio_pika.Message(body=data.encode()),
+            routing_key=queue_name,
+        )
         
         return ''
     except Exception as e:
-        print(f"Error occurred: {str(e)}")
+        logger.info(f"Error occurred: {str(e)}")
         return None
     
-def listen_for_server_replies(user_id: str, websocket: WebSocket):
-    credentials = pika.PlainCredentials(username='guest', password='guest')
-    parameters = pika.ConnectionParameters('rabbitmq', 5672, '/', credentials)
-    connection = pika.BlockingConnection(parameters=parameters)
-    channel = connection.channel()
+async def listen_for_server_replies(user_id: str, websocket: WebSocket):
+    try:
+        connection = await aio_pika.connect_robust("amqp://guest:guest@rabbitmq:5672/%2F")
+        channel = await connection.channel()
 
-    # Declare a unique reply queue for this listener
-    channel.queue_declare(queue=f'{user_id}_q')
+        # Declare a unique reply queue for this listener
+        reply_queue_name = f'{user_id}_q'
+        queue = await channel.declare_queue(reply_queue_name)
+        async def on_response(message):
+            async with message.process():
+                response_data = json.loads(message.body)
+                logger.info(f"response_data: {response_data}")
+                user1 = response_data["user1"]
+                user2 = response_data["user2"]
+                user1_id = user1["user_id"]
+                user2_id = user2["user_id"]
+                if user1_id == user_id:
+                    id = user2_id
+                else:
+                    id = user1_id
+                logger.info(f"{id} has matched")
+                message = f"You have matched with {id}!"
+                await websocket.send_text(json.dumps(message))
+                message_received.set()
 
-    def on_response(ch, method, properties, body):
-        response_data = json.loads(body)
-        user1 = response_data["user1"]
-        user2 = response_data["user2"]
-        if user1 == user_id:
-            id = user2["user_id"]
-            websocket.send_text(json.dumps(id))
-        else:
-            id = user1["user_id"]
-            websocket.send_text(json.dumps(id))
-        
-
-    # Consume responses from the unique reply queue
-    channel.basic_consume(queue=f'{user_id}_q', on_message_callback=on_response, auto_ack=True)
-
-    print("Listening for server replies...")
-    channel.start_consuming()
-
-    connection.close()
+        logger.info(f"{user_id} waiting for response...")
+        await queue.consume(on_response)
+    except Exception as e:
+        logger.info(f"Error occurred: {str(e)}")
