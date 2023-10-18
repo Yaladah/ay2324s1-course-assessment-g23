@@ -75,6 +75,7 @@ async def wait_for_match(user_id: str, complexity: str, websocket: WebSocket):
             nonlocal consumer_tag, is_matched
             async with message.process():
                 response_data = json.loads(message.body)
+                room_id = response_data["room_id"]
                 user1_id = response_data["user1"]
                 user2_id = response_data["user2"]
                 if user1_id == user_id:
@@ -85,9 +86,11 @@ async def wait_for_match(user_id: str, complexity: str, websocket: WebSocket):
                 # message = f"You have matched with {id}!"
                 message = {
                     "is_matched": True,
-                    "user_id": f"{id}"
+                    "user_id": f"{id}",
+                    "room_id": f"{room_id}"
                 }
                 await websocket.send_text(json.dumps(message))
+                is_matched = True
                 if consumer_tag is not None:
                     await queue.cancel(consumer_tag)
                 is_matched = True
@@ -102,7 +105,7 @@ async def wait_for_match(user_id: str, complexity: str, websocket: WebSocket):
             incoming_messages_task.cancel()
             logger.info(f"CANCELLING Consumer tag: {consumer_tag}")
             await queue.cancel(consumer_tag)
-        raise asyncio.TimeoutError
+            raise asyncio.TimeoutError
     except asyncio.TimeoutError as e:
         logger.info("Time has exceeded 30 seconds")
         await remove_user_from_queue(user_id=user_id, complexity=complexity)

@@ -55,4 +55,5 @@ async def websocket_endpoint(websocket: WebSocket):
         # Log any other exceptions for debugging
         print(f"An error occurred: {e}")
     finally:
+
         await websocket.close()

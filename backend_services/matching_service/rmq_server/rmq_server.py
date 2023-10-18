@@ -5,6 +5,7 @@ import json
 import asyncio
 import time
 import aio_pika
+import uuid
 
 # create queues for each complexity
 complexity_queues = {
@@ -56,9 +57,11 @@ async def main():
                             curr_queue.append(user_id)
                         logger.info(f"Current queue: {curr_queue}")
                         if len(curr_queue) >= 2:
+                            room_id = uuid.uuid4().hex
                             user1_id = curr_queue.pop(0)
                             user2_id = curr_queue.pop(0)
                             reply = {
+                                "room_id": room_id,
                                 "user1": user1_id,
                                 "user2": user2_id
                             }
