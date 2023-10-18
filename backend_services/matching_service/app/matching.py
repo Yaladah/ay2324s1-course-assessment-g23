@@ -94,6 +94,7 @@ async def wait_for_match(user_id: str, complexity: str, websocket: WebSocket):
                 if consumer_tag is not None:
                     await queue.cancel(consumer_tag)
                 is_matched = True
+                incoming_messages_task.cancel()
                 set_message_received(user_id)
 
         incoming_messages_task = asyncio.create_task(

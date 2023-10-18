@@ -142,15 +142,16 @@ services:
     depends_on:
       - matching_api
       - rabbitmq
-  # communication_api: # Websocket API running on its own container
-  #   build: 
-  #     context: ./backend_services/communication_service/rmq_server
-  #     dockerfile: Dockerfile
-  #   container_name: communication_api
-  #   volumes:
-  #     - ./server/src:/app/src
-  #   ports:
-  #     - "8004:8004"
+  chat_server:
+    build:
+      context: ./backend_services/matching_service/chat_server
+      dockerfile: Dockerfile
+    container_name: chat_server
+    networks:
+      - matching-queue
+    depends_on:
+      - matching_api
+      - rabbitmq
 volumes:
   users-data:
     external: true

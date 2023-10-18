@@ -15,6 +15,17 @@ import websockets.client
 from utils.api_gateway_util import has_permission, map_path_microservice_url, connect_matching_service_websocket
 from utils.addresses import MATCHING_SERVICE_HOST
 import websockets.exceptions
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# Configure logging to write to stdout
+handler = logging.StreamHandler()
+formatter = logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 app = FastAPI()
 
@@ -49,11 +60,12 @@ async def websocket_endpoint(ws_a: WebSocket):
     await ws_a.accept()
     async with websockets.client.connect(matching_api_url) as ws_b_client:
         try:
-            fwd_task = asyncio.create_task(
-                forward_communication(ws_a, ws_b_client))
-            rev_task = asyncio.create_task(
-                reverse_communication(ws_a, ws_b_client))
-            await asyncio.gather(fwd_task, rev_task)
+            while True:
+                fwd_task = asyncio.create_task(
+                    forward_communication(ws_a, ws_b_client))
+                rev_task = asyncio.create_task(
+                    reverse_communication(ws_a, ws_b_client))
+                await asyncio.gather(fwd_task, rev_task)
 
         # Ignore any "connection closed" errors. They're expected because any
         # of the websockets methods might fail when the websocket closes.

@@ -45,13 +45,13 @@ async def main():
         async def callback(message):
             async with message.process():
                 user_data = json.loads(message.body)
-                user_id = user_data["user_id"]
-                complexity = user_data["complexity"]
-                queue_name = f'{complexity}_queue'
                 action = user_data["action"]
                 logger.info(f"{user_data} received")
                 async with lock:
                     if action == "queue":
+                        user_id = user_data["user_id"]
+                        complexity = user_data["complexity"]
+                        queue_name = f'{complexity}_queue'
                         curr_queue = complexity_queues[queue_name]
                         if user_id not in curr_queue:
                             curr_queue.append(user_id)
@@ -61,6 +61,7 @@ async def main():
                             user1_id = curr_queue.pop(0)
                             user2_id = curr_queue.pop(0)
                             reply = {
+                                "action": "add_to_room",
                                 "room_id": room_id,
                                 "user1": user1_id,
                                 "user2": user2_id
@@ -68,6 +69,7 @@ async def main():
                             logger.info(f"Reply: {reply}")
                             await channel.declare_queue(f'{user1_id}_q')
                             await channel.declare_queue(f'{user2_id}_q')
+                            await channel.declare_queue("room_queue")
                             await channel.default_exchange.publish(
                                 aio_pika.Message(
                                     body=json.dumps(reply).encode(),
@@ -80,9 +82,18 @@ async def main():
                                 ),
                                 routing_key=f'{user2_id}_q',
                             )
+                            await channel.default_exchange.publish(
+                                aio_pika.Message(
+                                    body=json.dumps(reply).encode(),
+                                ),
+                                routing_key="room_queue"
+                            )
                         else:
                             await asyncio.sleep(1)
                     elif action == "cancel":
+                        user_id = user_data["user_id"]
+                        complexity = user_data["complexity"]
+                        queue_name = f'{complexity}_queue'
                         curr_queue = complexity_queues[queue_name]
                         logger.info(f"Queue before delete: {curr_queue}")
                         if user_id in curr_queue:

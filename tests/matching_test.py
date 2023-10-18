@@ -15,6 +15,12 @@ async def send_message():
             "user_id": "1234",
             "complexity": "easy"
         }
+        chat_message = {
+            "action": "chat",
+            "user_id": "1234",
+            "room_id": "7e78dde1a136467b9fe6c4000b9dd481",
+            "text": "Check"
+        }
         await ws.send(json.dumps(queue_message))
         response = await ws.recv()
         response = json.loads(response)
