@@ -43,12 +43,28 @@ async def join_communication_channel(websocket: WebSocket, room_id: str, user_id
     room.clients[user_websocket.user_id] = user_websocket
 
     chat_messages = room.chat_room.get_messages()
-    for sender_id, message in chat_messages:
-        await websocket.send_json({
-            "event": "receive-message",
-            "sender": sender_id,
-            "message": message
-        })
+    for sender_id, message, msg_type in chat_messages:
+        if msg_type == 'message':
+            await websocket.send_json({
+                "event": "receive-message",
+                "sender": sender_id,
+                "message": message,
+                "msg_type": msg_type
+            })
+        elif msg_type == 'join':
+            await websocket.send_json({
+                "event": "join-room",
+                "sender": sender_id,
+                "message": '',
+                "msg_type": msg_type
+            })
+        elif msg_type == 'leave':
+            await websocket.send_json({
+                "event": "leave-room",
+                "sender": sender_id,
+                "message": '',
+                "msg_type": msg_type
+            })
 
     try:
         while True:
@@ -57,7 +73,8 @@ async def join_communication_channel(websocket: WebSocket, room_id: str, user_id
             if event == "send-message":
                 message = data.get("message")
                 sender = data.get("sender")
-                room.chat_room.add_message(sender_id=sender, message=message)
+                room.chat_room.add_message(
+                    sender_id=sender, message=message, msg_type='message')
                 for client_id, client in room.clients.items():
                     if client_id != user_websocket.user_id:  # Exclude the sender
                         await client.websocket.send_json({
@@ -65,7 +82,33 @@ async def join_communication_channel(websocket: WebSocket, room_id: str, user_id
                             "sender": sender,
                             "message": message
                         })
+            elif event == 'join-room':
+                sender = data.get("sender")
+                room.chat_room.add_message(
+                    sender_id=sender, message='', msg_type='join')
+                for client_id, client in room.clients.items():
+                    if client_id != user_websocket.user_id:  # Exclude the sender
+                        await client.websocket.send_json({
+                            "event": "join-room",
+                            "sender": sender,
+                        })
+            elif event == 'leave-room':
+                sender = data.get("sender")
+                room.chat_room.add_message(
+                    sender_id=sender, message='', msg_type='leave')
+                for client_id, client in room.clients.items():
+                    if client_id != user_websocket.user_id:  # Exclude the sender
+                        await client.websocket.send_json({
+                            "event": "leave-room",
+                            "sender": sender,
+                        })
 
     except WebSocketDisconnect:
         if user_websocket.user_id in room.clients:
+            for client_id, client in room.clients.items():
+                if client_id != user_websocket.user_id:
+                    await client.websocket.send_json({
+                        "event": "leave-room",
+                        "sender": user_websocket.user_id,
+                    })
             del room.clients[user_websocket.user_id]

@@ -14,12 +14,13 @@ const COMMUNICATION_API_URL =
 type ChatMessage = {
     sender: string // The sender's name or identifier
     text: string // The message content
+    msg_type: string
 }
 
 const ChatBox: React.FC = () => {
     const { roomId } = useParams()
     const [socket, setSocket] = useState<WebSocket | null>(null)
-    const { data: user } = useCurrentUser()
+    const { data: user, isFetching: isFetchingCurrentUser } = useCurrentUser()
     const constraintsRef = useRef(null)
     const [formValue, setFormValue] = useState('')
     const [isMinimized, setIsMinimized] = useState(false)
@@ -28,21 +29,38 @@ const ChatBox: React.FC = () => {
     const messagesEndRef = useRef<HTMLDivElement | null>(null)
 
     useEffect(() => {
-        const socket = new WebSocket(
-            COMMUNICATION_API_URL + `/communication/${roomId}/${user?.username}`
-        )
-        setSocket(socket)
+        // Check if user is not null and not fetching
+        if (user !== null) {
+            const socket = new WebSocket(
+                COMMUNICATION_API_URL + `/communication/${roomId}/${user.username}`
+            )
+            setSocket(socket)
 
-        return () => {
-            socket.close()
+            return () => {
+                socket.close()
+            }
         }
-    }, [])
+    }, [user, roomId])
 
     useEffect(() => {
         if (socket == null) return
 
         socket.onopen = () => {
             console.log('WebSocket connection is open')
+            const user_id = user?.username
+            const userJoinMessage = JSON.stringify({
+                event: 'join-room',
+                sender: user_id,
+            })
+            socket.send(userJoinMessage)
+
+            const newMessage = {
+                sender: user_id,
+                text: '',
+                msg_type: 'join',
+            }
+
+            setChatMessages((prevChatMessages) => [...prevChatMessages, newMessage])
         }
 
         socket.onmessage = (event) => {
@@ -51,12 +69,36 @@ const ChatBox: React.FC = () => {
             if (data.event == 'receive-message') {
                 const text = data.message
                 const sender_id = data.sender
-                const newMessage = { sender: sender_id, text: text }
+                const newMessage = { sender: sender_id, text: text, msg_type: 'message' }
+                setChatMessages((prevChatMessages) => [...prevChatMessages, newMessage])
+            } else if (data.event == 'join-room') {
+                const sender_id = data.sender
+                const newMessage = { sender: sender_id, text: '', msg_type: 'join' }
+                setChatMessages((prevChatMessages) => [...prevChatMessages, newMessage])
+            } else if (data.event == 'leave-room') {
+                const sender_id = data.sender
+                const newMessage = { sender: sender_id, text: '', msg_type: 'leave' }
                 setChatMessages((prevChatMessages) => [...prevChatMessages, newMessage])
             } else if (data.event == 'full-room') {
                 console.log('Room is full')
                 socket.close()
             }
+        }
+
+        socket.onclose = (event) => {
+            const userLeaveMessage = JSON.stringify({
+                event: 'leave-room',
+                sender: user?.username,
+            })
+            socket.send(userLeaveMessage)
+
+            const newMessage = {
+                sender: user_id,
+                text: '',
+                msg_type: 'leave',
+            }
+
+            setChatMessages((prevChatMessages) => [...prevChatMessages, newMessage])
         }
 
         scrollToBottom()
@@ -87,7 +129,11 @@ const ChatBox: React.FC = () => {
 
         setChatMessages((prevChatMessages) => [
             ...prevChatMessages,
-            { sender: user?.username as string, text: formValue } as ChatMessage,
+            {
+                sender: user?.username as string,
+                text: formValue,
+                msg_type: 'message',
+            } as ChatMessage,
         ])
 
         setFormValue('')
@@ -145,7 +191,12 @@ const ChatBox: React.FC = () => {
                     </div>
                     <div className='chat-background'>
                         {chatMessages.map((message, index) => (
-                            <ChatMessage key={index} text={message.text} sender={message.sender} />
+                            <ChatMessage
+                                key={index}
+                                text={message.text}
+                                sender={message.sender}
+                                msg_type={message.msg_type}
+                            />
                         ))}
                         <div ref={messagesEndRef} />
                     </div>
