@@ -32,6 +32,14 @@ async def join_communication_channel(websocket: WebSocket, room_id: str, user_id
     user_websocket = UserWebSocket(
         user_id=user_id, websocket=websocket)
 
+    if room.is_full():
+        await websocket.send_json({
+            "event": "room-full",
+            "message": "The room is already full. You cannot join at the moment."
+        })
+        await websocket.close()
+        return
+
     room.clients[user_websocket.user_id] = user_websocket
 
     chat_messages = room.chat_room.get_messages()

@@ -22,7 +22,7 @@ const ChatBox: React.FC = () => {
     const { data: user } = useCurrentUser()
     const constraintsRef = useRef(null)
     const [formValue, setFormValue] = useState('')
-    const [isMinimized, setIsMinimized] = useState(true)
+    const [isMinimized, setIsMinimized] = useState(false)
     const chatHeaderControls = useAnimation()
     const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
     const messagesEndRef = useRef<HTMLDivElement | null>(null)
@@ -53,6 +53,9 @@ const ChatBox: React.FC = () => {
                 const sender_id = data.sender
                 const newMessage = { sender: sender_id, text: text }
                 setChatMessages((prevChatMessages) => [...prevChatMessages, newMessage])
+            } else if (data.event == 'full-room') {
+                console.log('Room is full')
+                socket.close()
             }
         }
 
